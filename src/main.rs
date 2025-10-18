@@ -1,7 +1,7 @@
 use gl::types::{GLsizeiptr, GLuint};
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
-use std::ffi::{c_void, CString};
+use std::ffi::{c_void, CStr, CString};
 use std::path::Path;
 use std::ptr::{null, null_mut};
 use std::time::Duration;
@@ -80,7 +80,7 @@ fn main() {
     });
     
     unsafe {
-        let version = std::ffi::CStr::from_ptr(gl::GetString(gl::VERSION) as *const i8);
+        let version = CStr::from_ptr(gl::GetString(gl::VERSION) as *const i8);
         println!("OpenGL version: {}", version.to_string_lossy());
     }
     
@@ -89,22 +89,32 @@ fn main() {
     let fragment_shader = create_shader(ShaderType::Fragment, Path::new("res/shaders/frag.glsl")).unwrap();
     let program = create_program(vertex_shader, fragment_shader).unwrap();
     
-    let vertices = vec![
-        0.0f32, 0.5, 0.0,
-        0.5, -0.5, 0.0,
-        -0.5, -0.5, 0.0,
+    let vertices: Vec<f32> = vec![
+        0.5,  0.5, 0.0,  // top right
+        0.5, -0.5, 0.0,  // bottom right
+        -0.5, -0.5, 0.0,  // bottom left
+        -0.5,  0.5, 0.0   // top left
     ];
     
+    let indices: Vec<u32> = vec![
+        0, 1, 3,
+        1, 2, 3,
+    ];
+    
+    let mut ebo: u32 = 0;
     let mut vao: u32 = 0;
     let mut vbo: u32 = 0;
     unsafe {
+        gl::GenBuffers(1, &mut ebo);
         gl::GenVertexArrays(1, &mut vao);
         gl::GenBuffers(1, &mut vbo);
         
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+        gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, (size_of::<u32>() * indices.len()) as isize, indices.as_ptr() as *const _, gl::STATIC_DRAW);
         
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(gl::ARRAY_BUFFER, (size_of::<f32>() * vertices.len()) as GLsizeiptr, vertices.as_ptr() as *const _, gl::STATIC_DRAW);
+        gl::BufferData(gl::ARRAY_BUFFER, (size_of::<f32>() * vertices.len()) as isize, vertices.as_ptr() as *const _, gl::STATIC_DRAW);
         
         gl::VertexAttribPointer(0, 3, gl::FLOAT, 0, 3 * size_of::<f32>() as i32, null());
         gl::EnableVertexAttribArray(0);
@@ -130,8 +140,8 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             
             gl::UseProgram(program);
-            gl::BindVertexArray(vao);
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, null());
         }
         
         window.gl_swap_window();
