@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 sdl3 = "0.16"
 gl = "0.14"
+glm = "0.3"

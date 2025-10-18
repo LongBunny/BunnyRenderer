@@ -1,12 +1,13 @@
 mod renderer;
 
 use crate::renderer::mesh::Mesh;
-use sdl3::event::Event;
+use sdl3::event::{Event, WindowEvent};
 use sdl3::keyboard::Keycode;
 use std::ffi::{c_void, CStr, CString};
 use std::path::Path;
 use std::ptr::{null, null_mut};
 use std::time::Duration;
+use crate::renderer::vertex::Vertex;
 
 enum ShaderType {
     Vertex,
@@ -71,6 +72,7 @@ fn main() {
     let window = video_subsystem.window("Hellowo Katharina", 800, 600)
         .opengl()
         .position_centered()
+        .resizable()
         .build()
         .unwrap();
     
@@ -91,19 +93,7 @@ fn main() {
     let fragment_shader = create_shader(ShaderType::Fragment, Path::new("res/shaders/frag.glsl")).unwrap();
     let program = create_program(vertex_shader, fragment_shader).unwrap();
     
-    let vertices: Vec<f32> = vec![
-        0.5,  0.5, 0.0,  // top right
-        0.5, -0.5, 0.0,  // bottom right
-        -0.5, -0.5, 0.0,  // bottom left
-        -0.5,  0.5, 0.0   // top left
-    ];
-    
-    let indices: Vec<u32> = vec![
-        0, 1, 3,
-        1, 2, 3,
-    ];
-    
-    let mesh = Mesh::new(&vertices, &indices);
+    let mesh = Mesh::quad();
     
     unsafe {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
@@ -117,13 +107,17 @@ fn main() {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
+                Event::Window {win_event: WindowEvent::Resized(w, h), ..} => {
+                    unsafe {
+                        gl::Viewport(0, 0, w, h);
+                    }
+                }
                 _ => {}
             }
         }
         
         unsafe {
             gl::Clear(gl::COLOR_BUFFER_BIT);
-            
             gl::UseProgram(program);
         }
         

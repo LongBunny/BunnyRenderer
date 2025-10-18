@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "autocfg"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
+
+[[package]]
 name = "bitflags"
 version = "2.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -33,7 +39,17 @@ name = "gl_rust"
 version = "0.1.0"
 dependencies = [
  "gl",
+ "glm",
  "sdl3",
+]
+
+[[package]]
+name = "glm"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "554870bc5d1b098ae10c380ebfeeb35e408107dcb5bb00e4677fc64eb4ce2aea"
+dependencies = [
+ "num-traits",
 ]
 
 [[package]]
@@ -59,6 +75,15 @@ name = "log"
 version = "0.4.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
+
+[[package]]
+name = "num-traits"
+version = "0.2.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
+dependencies = [
+ "autocfg",
+]
 
 [[package]]
 name = "sdl3"
