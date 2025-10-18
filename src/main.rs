@@ -1,123 +1,147 @@
-mod renderer;
-
-use std::ffi::{CStr, CString};
-use std::num::NonZeroU32;
-use std::process::ExitCode;
-use std::thread::sleep;
+use gl::types::{GLsizeiptr, GLuint};
+use sdl3::event::Event;
+use sdl3::keyboard::Keycode;
+use std::ffi::{c_void, CString};
+use std::path::Path;
+use std::ptr::{null, null_mut};
 use std::time::Duration;
-use glow::HasContext;
-use glutin::config::ConfigTemplateBuilder;
-use glutin::context::{ContextApi, ContextAttributesBuilder, PossiblyCurrentContext, Version};
-use glutin::display::GetGlDisplay;
-use glutin::prelude::{GlConfig, GlDisplay, GlSurface, NotCurrentGlContext};
-use glutin::surface::{Surface, SurfaceAttributesBuilder, WindowSurface};
-use glutin_winit::DisplayBuilder;
-use raw_window_handle::HasRawWindowHandle;
-use winit::application::ApplicationHandler;
-use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, EventLoop};
-use winit::platform::pump_events::{EventLoopExtPumpEvents, PumpStatus};
-use winit::window::{Window, WindowId};
 
-#[derive(Default)]
-struct App {
-    window: Option<Window>,
-    renderer: Option<renderer::Renderer>,
+enum ShaderType {
+    Vertex,
+    Fragment,
 }
 
-impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        let window_attribs = Some(Window::default_attributes().with_title("Hello Katharina"));
-        
-        let template = ConfigTemplateBuilder::new();
-        let display_builder = DisplayBuilder::new().with_window_attributes(window_attribs);
-        
-        let (window, gl_config) = display_builder
-            .build(event_loop, template, |configs| {
-                configs.reduce(|accum, cfg| {
-                    if cfg.num_samples() > accum.num_samples() {
-                        cfg
-                    } else {
-                        accum
-                    }
-                }).unwrap()
-            }).unwrap();
-        
-        let window = window.unwrap();
-        let raw_window_handle = window.raw_window_handle().unwrap();
-        
-        let context_attribs = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::OpenGl(Some(Version::new(3, 3))))
-            .build(Some(raw_window_handle));
-        
-        let not_current = unsafe {
-            gl_config
-                .display()
-                .create_context(&gl_config, &context_attribs)
-                .unwrap()
+fn create_shader(shader_type: ShaderType, path: &Path) -> Result<u32, String> {
+    let shader_src = std::fs::read_to_string(path).unwrap();
+    let shader_src = CString::new(shader_src).unwrap();
+    unsafe {
+        let shader_type = match shader_type {
+            ShaderType::Vertex => {gl::VERTEX_SHADER}
+            ShaderType::Fragment => {gl::FRAGMENT_SHADER}
         };
+        let shader = gl::CreateShader(shader_type);
+        gl::ShaderSource(shader, 1, &shader_src.as_ptr(), null());
+        gl::CompileShader(shader);
         
-        let attrs = SurfaceAttributesBuilder::<WindowSurface>::new()
-            .build(
-                window.raw_window_handle().unwrap(),
-                NonZeroU32::new(800).unwrap(), NonZeroU32::new(600).unwrap(),
-            );
-        
-        let surface = unsafe {
-            gl_config
-                .display()
-                .create_window_surface(&gl_config, &attrs)
-                .unwrap()
-        };
-        
-        let context = not_current.make_current(&surface).unwrap();
-        
-        let gl = unsafe {
-            glow::Context::from_loader_function(|s| gl_config.display().get_proc_address(CString::new(s).unwrap().as_c_str()))
-        };
-        
-        self.window = Some(window);
-        self.renderer = Some(renderer::Renderer::new(gl, surface, context));
-    }
-    
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, window_id: WindowId, event: WindowEvent) {
-        
-        if self.renderer.is_none() {
-            return;
+        let mut success = 0;
+        gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+        if success != 1 {
+            const LOG_SIZE: usize = 512;
+            let mut log = [0i8; LOG_SIZE];
+            gl::GetShaderInfoLog(shader, LOG_SIZE as i32, null_mut(), log.as_mut_ptr());
+            let log_str = std::ffi::CStr::from_ptr(log.as_ptr()).to_string_lossy();
+            return Err(std::format!("Could not compile shader: {}", log_str));
         }
         
-        let renderer = self.renderer.as_mut().unwrap();
+        Ok(shader)
+    }
+}
+
+fn create_program(vertex: u32, fragment: u32) -> Result<u32, String> {
+    unsafe {
+        let program = gl::CreateProgram();
         
-        match event {
-            WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::RedrawRequested => {
-                
-                renderer.render();
-                
-                // Ask for another frame
-                if let Some(window) = &self.window {
-                    window.request_redraw();
-                }
+        gl::AttachShader(program, vertex);
+        gl::AttachShader(program, fragment);
+        gl::LinkProgram(program);
+        
+        let mut success = 0;
+        gl::GetProgramiv(program, gl::LINK_STATUS, &mut success);
+        if success != 1 {
+            const LOG_SIZE: usize = 512;
+            let mut log = [0i8; LOG_SIZE];
+            gl::GetProgramInfoLog(program, LOG_SIZE as i32, null_mut(), log.as_mut_ptr());
+            let log_str = std::ffi::CStr::from_ptr(log.as_ptr()).to_string_lossy();
+            return Err(std::format!("Could not link program: {}", log_str));
+        }
+        
+        gl::DeleteShader(vertex);
+        gl::DeleteShader(fragment);
+        
+        Ok(program)
+    }
+}
+
+fn main() {
+    let sdl_context = sdl3::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    
+    let window = video_subsystem.window("Hellowo Katharina", 800, 600)
+        .opengl()
+        .position_centered()
+        .build()
+        .unwrap();
+    
+    let _gl_context = window.gl_create_context().unwrap();
+    window.gl_make_current(&_gl_context).unwrap();
+    
+    gl::load_with(|s| {
+        video_subsystem.gl_get_proc_address(s).unwrap() as *const c_void
+    });
+    
+    unsafe {
+        let version = std::ffi::CStr::from_ptr(gl::GetString(gl::VERSION) as *const i8);
+        println!("OpenGL version: {}", version.to_string_lossy());
+    }
+    
+    
+    let vertex_shader = create_shader(ShaderType::Vertex, Path::new("res/shaders/vertex.glsl")).unwrap();
+    let fragment_shader = create_shader(ShaderType::Fragment, Path::new("res/shaders/frag.glsl")).unwrap();
+    let program = create_program(vertex_shader, fragment_shader).unwrap();
+    
+    let vertices = vec![
+        0.0f32, 0.5, 0.0,
+        0.5, -0.5, 0.0,
+        -0.5, -0.5, 0.0,
+    ];
+    
+    let mut vao: u32 = 0;
+    let mut vbo: u32 = 0;
+    unsafe {
+        gl::GenVertexArrays(1, &mut vao);
+        gl::GenBuffers(1, &mut vbo);
+        
+        
+        gl::BindVertexArray(vao);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+        gl::BufferData(gl::ARRAY_BUFFER, (size_of::<f32>() * vertices.len()) as GLsizeiptr, vertices.as_ptr() as *const _, gl::STATIC_DRAW);
+        
+        gl::VertexAttribPointer(0, 3, gl::FLOAT, 0, 3 * size_of::<f32>() as i32, null());
+        gl::EnableVertexAttribArray(0);
+    }
+    
+    unsafe {
+        gl::ClearColor(0.1, 0.3, 0.2, 1.0);
+    }
+    
+    let mut event_pump = sdl_context.event_pump().unwrap();
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'running
+                },
+                _ => {}
             }
-            _ => (),
         }
+        
+        unsafe {
+            gl::Clear(gl::COLOR_BUFFER_BIT);
+            
+            gl::UseProgram(program);
+            gl::BindVertexArray(vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+        }
+        
+        window.gl_swap_window();
+        
+        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
-}
-
-
-fn main() -> ExitCode {
-    let mut event_loop = EventLoop::new().unwrap();
     
-    let mut app = App::default();
-    
-    loop {
-        let timeout = Some(Duration::ZERO);
-        let status = event_loop.pump_app_events(timeout, &mut app);
-        
-        if let PumpStatus::Exit(exit_code) = status {
-            break ExitCode::from(exit_code as u8);
-        }
-        
-        sleep(Duration::from_millis(16));
+    unsafe {
+        gl::DeleteVertexArrays(1, &mut vao);
+        gl::DeleteBuffers(1, &mut vbo);
+        gl::DeleteProgram(program);
     }
 }
