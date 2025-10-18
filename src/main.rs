@@ -1,12 +1,12 @@
 mod renderer;
 
+use crate::renderer::mesh::Mesh;
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
 use std::ffi::{c_void, CStr, CString};
 use std::path::Path;
 use std::ptr::{null, null_mut};
 use std::time::Duration;
-use crate::renderer::Buffer::{Buffer, EBO, VAO, VBO};
 
 enum ShaderType {
     Vertex,
@@ -103,18 +103,8 @@ fn main() {
         1, 2, 3,
     ];
     
-    let ebo = EBO::new();
-    let vao = VAO::new();
-    let vbo = VBO::new();
+    let mesh = Mesh::new(&vertices, &indices);
     
-    ebo.bind();
-    ebo.buffer_data(&indices);
-    
-    vao.bind();
-    vbo.bind();
-    vbo.buffer_data(&vertices);
-    vao.vertex_attrib_pointer(0, 3, 3);
-        
     unsafe {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
     }
@@ -135,10 +125,9 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
             
             gl::UseProgram(program);
-            // gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
-            ebo.bind();
-            gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, null());
         }
+        
+        mesh.render();
         
         window.gl_swap_window();
         
