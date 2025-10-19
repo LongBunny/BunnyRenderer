@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::ptr::{null, null_mut};
 
 pub trait UniformValue {
@@ -10,7 +10,9 @@ pub trait UniformValue {
 pub struct Shader {
     id: u32,
     
-    uniforms: HashMap<String, i32>
+    uniforms: HashMap<String, i32>,
+    vertex_path: PathBuf,
+    fragment_path: PathBuf,
 }
 
 enum ShaderType {
@@ -19,7 +21,7 @@ enum ShaderType {
 }
 
 impl Shader {
-    pub fn new(vertex_path: &Path, fragment_path: &Path) -> Result<Self, String> {
+    pub fn new(vertex_path: &PathBuf, fragment_path: &PathBuf) -> Result<Self, String> {
         let vertex = Self::create_shader(ShaderType::Vertex, vertex_path)?;
         let fragment = Self::create_shader(ShaderType::Fragment, fragment_path)?;
 
@@ -27,7 +29,9 @@ impl Shader {
 
         Ok(Self {
             id: program,
-            uniforms: HashMap::new()
+            uniforms: HashMap::new(),
+            vertex_path: vertex_path.clone(),
+            fragment_path: fragment_path.clone()
         })
     }
 
@@ -38,6 +42,12 @@ impl Shader {
     pub fn bind(&self) {
         unsafe {
             gl::UseProgram(self.id);
+        }
+    }
+    
+    pub fn unbind(&self) {
+        unsafe {
+            gl::UseProgram(0);
         }
     }
 
@@ -65,8 +75,17 @@ impl Shader {
             value.set_uniform(location);
         }
     }
+    
+    
+    pub fn reload(&mut self) -> Result<(), String> {
+        let vertex = Self::create_shader(ShaderType::Vertex, &self.vertex_path)?;
+        let fragment = Self::create_shader(ShaderType::Fragment, &self.fragment_path)?;
+        self.id = Self::create_program(vertex, fragment)?;
+        
+        Ok(())
+    }
 
-    fn create_shader(shader_type: ShaderType, path: &Path) -> Result<u32, String> {
+    fn create_shader(shader_type: ShaderType, path: &PathBuf) -> Result<u32, String> {
         let shader_src = std::fs::read_to_string(path).unwrap();
         let shader_src = CString::new(shader_src).unwrap();
         unsafe {

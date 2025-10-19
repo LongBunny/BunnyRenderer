@@ -9,7 +9,7 @@ use num_traits::identities::One;
 use sdl3::event::{Event, WindowEvent};
 use sdl3::keyboard::Keycode;
 use std::ffi::{c_void, CStr};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 use num_traits::Zero;
@@ -27,7 +27,6 @@ fn main() {
     gl_attr.set_double_buffer(true);
     gl_attr.set_multisample_buffers(1);
     gl_attr.set_multisample_samples(4);
-    
     
     let window = video_subsystem.window("Hellowo Katharina", width, height)
         .opengl()
@@ -55,13 +54,17 @@ fn main() {
         println!("OpenGL version: {}", version.to_string_lossy());
     }
     
-    let shader = Rc::new(RefCell::new(
-        Shader::new(Path::new("res/shaders/vertex.glsl"), Path::new("res/shaders/frag.glsl")).unwrap()
+    let mut shader = Rc::new(RefCell::new(
+        Shader::new(&PathBuf::from("res/shaders/vertex.glsl"), &PathBuf::from("res/shaders/frag.glsl")).unwrap()
     ));
+    
+    // let mut shader_checkerboard = Rc::new(RefCell::new(
+    //     Shader::new(Path::new("res/shaders/vertex.glsl"), Path::new("res/shaders/checkerboard.glsl")).unwrap()
+    // ));
+    
     let quad_mesh = Rc::new(RefCell::new(
         Mesh::quad()
     ));
-    
     let cube_mesh = Rc::new(RefCell::new(
         Mesh::cube()
     ));
@@ -106,9 +109,22 @@ fn main() {
     'running: loop {
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                Event::Quit {..} => {
                     break 'running
+                }
+                Event::KeyDown { keycode: Some(keycode), .. } => {
+                    match keycode {
+                        Keycode::Escape => break 'running,
+                        Keycode::R => {
+                            println!("Reloading shaders");
+                            shader.borrow().unbind();
+                            match shader.borrow_mut().reload() {
+                                Ok(_) => { println!("Shader reloaded!") }
+                                Err(e) => { eprintln!("Shader compilation failed: {}", e) }
+                            }
+                        }
+                        _ => {}
+                    }
                 },
                 Event::Window {win_event: WindowEvent::Resized(w, h), ..} => {
                     unsafe {

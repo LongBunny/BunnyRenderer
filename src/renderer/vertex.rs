@@ -1,6 +1,8 @@
+use glm::{Vec2, Vec3, Vec4};
 
 #[repr(C)]
 pub struct Vertex {
-    pub pos: glm::Vec3,
-    pub col: glm::Vec4,
+    pub v: Vec3,
+    pub vn: Vec3,
+    pub vt: Vec2,
 }
