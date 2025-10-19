@@ -1,3 +1,4 @@
 pub mod buffer;
 pub mod vertex;
+pub mod shader;
 pub mod mesh;

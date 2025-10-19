@@ -1,3 +1,4 @@
+use num_traits::identities::One;
 use std::ptr::null;
 use glm::Vec4;
 use crate::renderer::buffer::{Buffer, EBO, VAO, VBO};
@@ -49,10 +50,10 @@ impl Mesh {
     
     pub fn quad() -> Self {
         let vertices: Vec<Vertex> = vec![
-            Vertex {pos: glm::Vec3::new(0.5,  0.5, 0.0), col: Vec4::new(1.0, 1.0, 1.0, 1.0)},
-            Vertex {pos: glm::Vec3::new(0.5, -0.5, 0.0), col: Vec4::new(1.0, 1.0, 1.0, 1.0)},
-            Vertex {pos: glm::Vec3::new(-0.5, -0.5, 0.0), col: Vec4::new(1.0, 1.0, 1.0, 1.0)},
-            Vertex {pos: glm::Vec3::new(-0.5,  0.5, 0.0), col: Vec4::new(1.0, 1.0, 1.0, 1.0)},
+            Vertex {pos: glm::Vec3::new(0.5,  0.5, 0.0), col: Vec4::one()},
+            Vertex {pos: glm::Vec3::new(0.5, -0.5, 0.0), col: Vec4::one()},
+            Vertex {pos: glm::Vec3::new(-0.5, -0.5, 0.0), col: Vec4::one()},
+            Vertex {pos: glm::Vec3::new(-0.5,  0.5, 0.0), col: Vec4::one()},
         ];
         
         let indices: Vec<u32> = vec![
