@@ -91,10 +91,14 @@ impl Model {
         self.shader.borrow().bind();
         
         let pvm_loc = self.shader_mut().get_uniform_location("pvm").unwrap();
-        self.shader_mut().set_uniform(pvm_loc, pv_mat * self.transform().model_matrix());
+        self.shader().set_uniform(pvm_loc, pv_mat * self.transform().model_matrix());
         
-        let color_loc = self.shader.borrow_mut().get_uniform_location("tint").unwrap();
-        self.shader.borrow().set_uniform(color_loc, self.tint);
+        {
+            let mut shader = self.shader.borrow_mut();
+            if let Some(tint_loc) = shader.get_uniform_location("tint") {
+                shader.set_uniform(tint_loc, self.tint);
+            }
+        }
         
         
         self.mesh.borrow().render();

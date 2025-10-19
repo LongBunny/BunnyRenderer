@@ -62,7 +62,7 @@ impl Shader {
         };
         
         if location == -1 {
-            eprintln!("Warning: Uniform '{name}' not found.");
+            // eprintln!("Warning: Uniform '{name}' not found.");
             return None;
         }
         

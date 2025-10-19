@@ -27,7 +27,7 @@ impl Mesh {
         vbo.buffer_data(vertices);
         vao.vertex_attrib_pointer(0, 3, 8, 0);
         vao.vertex_attrib_pointer(1, 3, 8, 3);
-        vao.vertex_attrib_pointer(1, 2, 8, 5);
+        vao.vertex_attrib_pointer(2, 2, 8, 6);
         
         ebo.unbind();
         vbo.unbind();
@@ -66,32 +66,85 @@ impl Mesh {
     }
     
     pub fn cube() -> Self {
+        // let vertices: Vec<Vertex> = vec![
+        //     // Front face corners
+        //     Vertex { v: Vec3::new(-0.5, -0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(0.0, 0.0)},
+        //     Vertex { v: Vec3::new( 0.5, -0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(1.0, 0.0)},
+        //     Vertex { v: Vec3::new( 0.5,  0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(1.0, 1.0)},
+        //     Vertex { v: Vec3::new(-0.5,  0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(0.0, 1.0)},
+        //     // Back face corners
+        //     Vertex { v: Vec3::new(-0.5, -0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(1.0, 0.0)},
+        //     Vertex { v: Vec3::new( 0.5, -0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(0.0, 0.0)},
+        //     Vertex { v: Vec3::new( 0.5,  0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(0.0, 1.0)},
+        //     Vertex { v: Vec3::new(-0.5,  0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(1.0, 1.0)},
+        // ];
+        //
+        // let indices: Vec<u32> = vec![
+        //     // Front
+        //     0, 1, 2,  2, 3, 0,
+        //     // Back
+        //     5, 4, 7,  7, 6, 5,
+        //     // Left
+        //     4, 0, 3,  3, 7, 4,
+        //     // Right
+        //     1, 5, 6,  6, 2, 1,
+        //     // Top
+        //     3, 2, 6,  6, 7, 3,
+        //     // Bottom
+        //     4, 5, 1,  1, 0, 4,
+        // ];
+        
         let vertices: Vec<Vertex> = vec![
-            // Front face corners
-            Vertex { v: Vec3::new(-0.5, -0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(0.0, 0.0)},
-            Vertex { v: Vec3::new( 0.5, -0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(1.0, 0.0)},
-            Vertex { v: Vec3::new( 0.5,  0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(1.0, 1.0)},
-            Vertex { v: Vec3::new(-0.5,  0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(0.0, 1.0)},
-            // Back face corners
-            Vertex { v: Vec3::new(-0.5, -0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(1.0, 0.0)},
-            Vertex { v: Vec3::new( 0.5, -0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(0.0, 0.0)},
-            Vertex { v: Vec3::new( 0.5,  0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(0.0, 1.0)},
-            Vertex { v: Vec3::new(-0.5,  0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.), vt: Vec2::new(1.0, 1.0)},
+            // Front face (+Z) - Red
+            Vertex { v: Vec3::new(-0.5, -0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(0.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5, -0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(1.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5,  0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(1.0, 1.0) },
+            Vertex { v: Vec3::new(-0.5,  0.5,  0.5), vn: Vec3::new(0.0, 0.0, 1.0), vt: Vec2::new(0.0, 1.0) },
+            
+            // Back face (-Z) - Green
+            Vertex { v: Vec3::new( 0.5, -0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.0), vt: Vec2::new(0.0, 0.0) },
+            Vertex { v: Vec3::new(-0.5, -0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.0), vt: Vec2::new(1.0, 0.0) },
+            Vertex { v: Vec3::new(-0.5,  0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.0), vt: Vec2::new(1.0, 1.0) },
+            Vertex { v: Vec3::new( 0.5,  0.5, -0.5), vn: Vec3::new(0.0, 0.0, -1.0), vt: Vec2::new(0.0, 1.0) },
+            
+            // Top face (+Y) - Blue
+            Vertex { v: Vec3::new(-0.5,  0.5,  0.5), vn: Vec3::new(0.0, 1.0, 0.0), vt: Vec2::new(0.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5,  0.5,  0.5), vn: Vec3::new(0.0, 1.0, 0.0), vt: Vec2::new(1.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5,  0.5, -0.5), vn: Vec3::new(0.0, 1.0, 0.0), vt: Vec2::new(1.0, 1.0) },
+            Vertex { v: Vec3::new(-0.5,  0.5, -0.5), vn: Vec3::new(0.0, 1.0, 0.0), vt: Vec2::new(0.0, 1.0) },
+            
+            // Bottom face (-Y) - Yellow
+            Vertex { v: Vec3::new(-0.5, -0.5, -0.5), vn: Vec3::new(0.0, -1.0, 0.0), vt: Vec2::new(0.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5, -0.5, -0.5), vn: Vec3::new(0.0, -1.0, 0.0), vt: Vec2::new(1.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5, -0.5,  0.5), vn: Vec3::new(0.0, -1.0, 0.0), vt: Vec2::new(1.0, 1.0) },
+            Vertex { v: Vec3::new(-0.5, -0.5,  0.5), vn: Vec3::new(0.0, -1.0, 0.0), vt: Vec2::new(0.0, 1.0) },
+            
+            // Right face (+X) - Magenta
+            Vertex { v: Vec3::new( 0.5, -0.5,  0.5), vn: Vec3::new(1.0, 0.0, 0.0), vt: Vec2::new(0.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5, -0.5, -0.5), vn: Vec3::new(1.0, 0.0, 0.0), vt: Vec2::new(1.0, 0.0) },
+            Vertex { v: Vec3::new( 0.5,  0.5, -0.5), vn: Vec3::new(1.0, 0.0, 0.0), vt: Vec2::new(1.0, 1.0) },
+            Vertex { v: Vec3::new( 0.5,  0.5,  0.5), vn: Vec3::new(1.0, 0.0, 0.0), vt: Vec2::new(0.0, 1.0) },
+            
+            // Left face (-X) - Cyan
+            Vertex { v: Vec3::new(-0.5, -0.5, -0.5), vn: Vec3::new(-1.0, 0.0, 0.0), vt: Vec2::new(0.0, 0.0) },
+            Vertex { v: Vec3::new(-0.5, -0.5,  0.5), vn: Vec3::new(-1.0, 0.0, 0.0), vt: Vec2::new(1.0, 0.0) },
+            Vertex { v: Vec3::new(-0.5,  0.5,  0.5), vn: Vec3::new(-1.0, 0.0, 0.0), vt: Vec2::new(1.0, 1.0) },
+            Vertex { v: Vec3::new(-0.5,  0.5, -0.5), vn: Vec3::new(-1.0, 0.0, 0.0), vt: Vec2::new(0.0, 1.0) },
         ];
         
         let indices: Vec<u32> = vec![
             // Front
             0, 1, 2,  2, 3, 0,
             // Back
-            5, 4, 7,  7, 6, 5,
-            // Left
-            4, 0, 3,  3, 7, 4,
-            // Right
-            1, 5, 6,  6, 2, 1,
+            4, 5, 6,  6, 7, 4,
             // Top
-            3, 2, 6,  6, 7, 3,
+            8, 9, 10,  10, 11, 8,
             // Bottom
-            4, 5, 1,  1, 0, 4,
+            12, 13, 14,  14, 15, 12,
+            // Right
+            16, 17, 18,  18, 19, 16,
+            // Left
+            20, 21, 22,  22, 23, 20,
         ];
         
         Mesh::new(&vertices, &indices)
