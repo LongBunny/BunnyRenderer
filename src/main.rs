@@ -1,19 +1,22 @@
 mod renderer;
 
+use std::cell::RefCell;
 use crate::renderer::mesh::Mesh;
 use crate::renderer::shader::Shader;
-use glm::Vec3;
+use crate::renderer::model::{Model, Transform};
+use glm::{Vec3, Vec4};
 use num_traits::identities::One;
-use num_traits::Zero;
 use sdl3::event::{Event, WindowEvent};
 use sdl3::keyboard::Keycode;
 use std::ffi::{c_void, CStr};
 use std::path::Path;
+use std::rc::Rc;
 use std::time::Duration;
+use num_traits::Zero;
 
 fn main() {
-    let mut width = 800;
-    let mut height = 600;
+    let mut width = 1920;
+    let mut height = 1080;
     
     let sdl_context = sdl3::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -52,23 +55,52 @@ fn main() {
         println!("OpenGL version: {}", version.to_string_lossy());
     }
     
-    let mut shader = Shader::new(Path::new("res/shaders/vertex.glsl"), Path::new("res/shaders/frag.glsl")).unwrap();
-    let mesh = Mesh::quad();
+    let shader = Rc::new(RefCell::new(
+        Shader::new(Path::new("res/shaders/vertex.glsl"), Path::new("res/shaders/frag.glsl")).unwrap()
+    ));
+    let quad_mesh = Rc::new(RefCell::new(
+        Mesh::quad()
+    ));
+    
+    let cube_mesh = Rc::new(RefCell::new(
+        Mesh::cube()
+    ));
+    
+    let cube1 = Model::with_transform(
+        cube_mesh.clone(), shader.clone(),
+        Transform::new(Vec3::new(0.0, 0.0, 0.0), Vec3::one(), Vec3::zero())
+    );
+    let mut quad1 = Model::with_transform(
+        quad_mesh.clone(), shader.clone(),
+        Transform::new(Vec3::new(1.5, 0.75, 0.0), Vec3::one(), Vec3::zero())
+    );
+    let cube2 = Model::with_transform(
+        cube_mesh.clone(), shader.clone(),
+        Transform::new(Vec3::new(-3.0, 0.0, 5.0), Vec3::one(), Vec3::zero())
+    );
+    
+    let mut floor = Model::with_transform(
+        quad_mesh.clone(), shader.clone(),
+        Transform::new(Vec3::new(0.0, -1.0, 0.0), Vec3::new(50.0, 50.0, 1.0), Vec3::new(-std::f32::consts::PI / 2.0, 0.0, 0.0))
+    );
+    
+    quad1.set_tint(Vec4::new(234.0 / 255.0, 72.0 / 255.0, 213.0 / 255.0, 1.0));
+    floor.set_tint(Vec4::new(50.0 / 255.0, 50.0 / 255.0, 50.0 / 255.0, 1.0));
+    // quad2.set_tint(Vec4::new(0.0, 1.0, 0.0, 1.0));
+    // quad3.set_tint(Vec4::new(0.0, 0.0, 1.0, 1.0));
     
     unsafe {
+        gl::Enable(gl::DEPTH_TEST);
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
     }
     
-    let mut projection = glm::ext::perspective(70f32, aspect_ratio, 0.1, 100.0);
+    let mut projection = glm::ext::perspective(70f32, aspect_ratio, 0.01, 100.0);
     let view = glm::ext::look_at(
-        Vec3::new(0.0, 0.0, 2.0),
+        Vec3::new(0.0, 1.0, -5.0),
         Vec3::new(0.0, 0.0, 0.0),
         Vec3::new(0.0, 1.0, 0.0)
     );
     let pv_mat = projection * view;
-    let mut model = glm::Mat4::one();
-    
-    let mut pvm_mat = pv_mat * model;
     
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -92,18 +124,19 @@ fn main() {
         }
         
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         
-        shader.bind();
+        let old_rot = cube1.transform().rotation();
+        cube1.transform_mut().set_rotation(Vec3::new(old_rot.x, old_rot.y + 0.05, old_rot.z - 0.01));
         
-        model = glm::ext::rotate(&model, 0.05, glm::vec3(0.0, 1.0, 0.0));
-        pvm_mat = pv_mat * model;
+        // let old_pos = floor.transform().pos();
+        // floor.transform_mut().set_pos(Vec3::new(old_pos.x, old_pos.y - 0.01, old_pos.z));
         
-        let pvm_loc = shader.get_uniform_location("pvm").unwrap();
-        shader.set_uniform(pvm_loc, pvm_mat);
-        
-        mesh.render();
+        floor.render(pv_mat);
+        cube1.render(pv_mat);
+        quad1.render(pv_mat);
+        cube2.render(pv_mat);
         
         window.gl_swap_window();
         
