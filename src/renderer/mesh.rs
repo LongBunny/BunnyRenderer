@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use num_traits::identities::One;
 use std::ptr::null;
 use glm::{Vec2, Vec3, Vec4};
@@ -39,6 +40,11 @@ impl Mesh {
             vao,
             indices_len: indices.len()
         }
+    }
+    
+    pub fn from_model(path: &PathBuf) -> Result<Self, String> {
+        let (vertices, indices) = load_from_obj(path)?;
+        Ok(Mesh::new(&vertices, &indices))
     }
     
     pub fn render(&self) {
@@ -149,4 +155,8 @@ impl Mesh {
         
         Mesh::new(&vertices, &indices)
     }
+}
+
+fn load_from_obj(path: &PathBuf) -> Result<(Vec<Vertex>, Vec<u32>), String> {
+    todo!()
 }

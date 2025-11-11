@@ -9,12 +9,18 @@ use num_traits::identities::One;
 use sdl3::event::{Event, WindowEvent};
 use sdl3::keyboard::Keycode;
 use std::ffi::{c_void, CStr};
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 use num_traits::Zero;
 
 fn main() {
+    
+    // let cube = Mesh::from_model(&PathBuf::from("res/models/cube.obj"));
+    //
+    // return;
+    
+    
     let mut width = 1920;
     let mut height = 1080;
     
