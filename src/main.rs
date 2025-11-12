@@ -11,10 +11,14 @@ use sdl3::event::{Event, WindowEvent};
 use sdl3::keyboard::Keycode;
 use std::ffi::{c_void, CStr};
 use std::path::{PathBuf};
+use std::ptr::null;
 use std::rc::Rc;
 use std::time::Duration;
+use gl::types::{GLenum, GLint, GLuint};
+use image::{EncodableLayout, ImageReader};
 use num_traits::Zero;
 use crate::renderer::camera::Camera;
+use crate::renderer::texture::Texture;
 
 const DEG_TO_RAD: f32 = TAU / 360.0;
 const RAD_TO_DEG: f32 = 360.0 / TAU;
@@ -73,6 +77,8 @@ fn main() {
         Shader::new(&PathBuf::from("res/shaders/checkerboard.vert"), &PathBuf::from("res/shaders/checkerboard.frag")).unwrap()
     ));
     
+    let texture = Texture::new("res/textures/prettyface.jpg").unwrap();
+    
     let quad_mesh = Rc::new(RefCell::new(
         Mesh::quad()
     ));
@@ -112,7 +118,7 @@ fn main() {
     
     let mut camera = Camera::new(
         Vec3::new(0.0, 1.0, 5.0),
-        Vec3::new(0.0, 1.0, 0.0),
+        Vec3::new(0.0, -(PI * 0.5), 0.0),
         70.0, aspect_ratio, 0.01, 100.0
     );
     
@@ -260,6 +266,7 @@ fn main() {
         }
         
         
+        texture.bind();
         
         floor.render(camera.pv_mat());
         cube1.render(camera.pv_mat());
