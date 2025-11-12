@@ -1,11 +1,11 @@
 mod renderer;
 
 use std::cell::RefCell;
-use std::f32::consts::PI;
+use std::f32::consts::{PI, TAU};
 use crate::renderer::mesh::Mesh;
 use crate::renderer::shader::Shader;
 use crate::renderer::model::{Model, Transform};
-use glm::{cos, sin, Vec3, Vec4};
+use glm::{cos, pow, sin, Vec3, Vec4};
 use num_traits::identities::One;
 use sdl3::event::{Event, WindowEvent};
 use sdl3::keyboard::Keycode;
@@ -15,6 +15,9 @@ use std::rc::Rc;
 use std::time::Duration;
 use num_traits::Zero;
 use crate::renderer::camera::Camera;
+
+const DEG_TO_RAD: f32 = TAU / 360.0;
+const RAD_TO_DEG: f32 = 360.0 / TAU;
 
 fn main() {
     
@@ -107,19 +110,30 @@ fn main() {
         gl::ClearColor(0.1, 0.3, 0.2, 1.0);
     }
     
-    let mut projection = glm::ext::perspective(70f32, aspect_ratio, 0.01, 100.0);
+    let mut camera = Camera::new(
+        Vec3::new(0.0, 1.0, 5.0),
+        Vec3::new(0.0, 1.0, 0.0),
+        70.0, aspect_ratio, 0.01, 100.0
+    );
     
-    let mut camera = Camera::new(Vec3::new(0.0, 1.0, 5.0), Vec3::new(0.0, 1.0, 0.0));
+    let mut keycodes: Vec<Keycode> = Vec::new();
+    
+    let mut speed = 4.0;
+    let mut rot_speed = 2.0;
     
     let mut i = 0f32;
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
+        let dt = 1.0/60.0;
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} => {
                     break 'running
                 }
                 Event::KeyDown { keycode: Some(keycode), .. } => {
+                    if let None = keycodes.iter().find(|kc| **kc == keycode) {
+                        keycodes.push(keycode);
+                    }
                     match keycode {
                         Keycode::Escape => break 'running,
                         Keycode::R => {
@@ -135,18 +149,33 @@ fn main() {
                                 Ok(_) => { println!("shader_checkerboard reloaded!") }
                                 Err(e) => { eprintln!("shader_checkerboard compilation failed: {}", e) }
                             }
-                        },
-                        
+                        }
                         _ => {}
                     }
                 },
+                Event::KeyUp {keycode: Some(keycode), ..} => {
+                    if let Some(index) = keycodes.iter().position(|kc| *kc == keycode) {
+                        keycodes.remove(index);
+                    }
+                }
+                Event::MouseWheel {x, y, direction, ..} => {
+                    // println!("x: {x}, y: {y}, direction: {direction:?}");
+                    speed += y * 10.0 * dt;
+                    if speed < 0.1 {
+                        speed = 0.1;
+                    }
+                    
+                    println!("speed: {speed}");
+                }
+                
                 Event::Window {win_event: WindowEvent::Resized(w, h), ..} => {
                     unsafe {
                         gl::Viewport(0, 0, w, h);
                         width = w as u32;
                         height = h as u32;
                         aspect_ratio = w as f32 / h as f32;
-                        projection = glm::ext::perspective(90f32, aspect_ratio, 0.1, 100.0);
+                        // TODO: update projection settings
+                        // projection = glm::ext::perspective(90f32, aspect_ratio, 0.1, 100.0);
                     }
                 }
                 _ => {}
@@ -174,13 +203,68 @@ fn main() {
             1.0));
         
         // camera.set_position(camera.position() + Vec3::new(0.01, 0.0, 0.0));
-        camera.set_rotation(camera.rotation() + Vec3::new(0.0, 0.01, 0.0));
-        let pv_mat = projection * camera.view_mat();
+        // camera.set_rotation(camera.rotation() + Vec3::new(0.0, TAU / 10.0 * dt, 0.0));
         
-        floor.render(pv_mat);
-        cube1.render(pv_mat);
-        cube2.render(pv_mat);
-        quad1.render(pv_mat);
+        let mut direction = Vec3::zero();
+        for keycode in keycodes.iter() {
+            match keycode {
+                Keycode::W => {
+                    direction = direction + camera.forward();
+                }
+                Keycode::S => {
+                    direction = direction + camera.backward();
+                }
+                Keycode::A => {
+                    direction = direction + camera.left();
+                }
+                Keycode::D => {
+                    direction = direction + camera.right();
+                }
+                Keycode::Left => {
+                    let mut new_rot = camera.rotation();
+                    new_rot.y = new_rot.y - rot_speed * dt;
+                    camera.set_rotation(new_rot);
+                }
+                Keycode::Right => {
+                    let mut new_rot = camera.rotation();
+                    new_rot.y = new_rot.y + rot_speed * dt;
+                    camera.set_rotation(new_rot);
+                }
+                Keycode::Down => {
+                    let mut new_rot = camera.rotation();
+                    new_rot.x = new_rot.x + rot_speed * dt;
+                    if new_rot.x > DEG_TO_RAD * 89.0 {
+                        new_rot.x = DEG_TO_RAD * 89.0;
+                    }
+                    camera.set_rotation(new_rot)
+                }
+                Keycode::Up => {
+                    let mut new_rot = camera.rotation();
+                    new_rot.x = new_rot.x - rot_speed * dt;
+                    if new_rot.x < -DEG_TO_RAD * 89.0 {
+                        new_rot.x = -DEG_TO_RAD * 89.0;
+                    }
+                    camera.set_rotation(new_rot)
+                }
+                Keycode::E => {
+                    direction = direction + Vec3::new(0.0, 1.0, 0.0);
+                }
+                Keycode::Q => {
+                    direction = direction - Vec3::new(0.0, 1.0, 0.0);
+                }
+                _ => {}
+            }
+        }
+        if glm::length(direction) > 0.0 {
+            camera.set_position(camera.position() + glm::normalize(direction) * speed * dt);
+        }
+        
+        
+        
+        floor.render(camera.pv_mat());
+        cube1.render(camera.pv_mat());
+        cube2.render(camera.pv_mat());
+        quad1.render(camera.pv_mat());
         
         window.gl_swap_window();
         
