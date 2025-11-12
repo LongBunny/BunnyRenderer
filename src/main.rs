@@ -1,6 +1,7 @@
 mod renderer;
 
 use std::cell::RefCell;
+use std::f32::consts::PI;
 use crate::renderer::mesh::Mesh;
 use crate::renderer::shader::Shader;
 use crate::renderer::model::{Model, Transform};
@@ -13,6 +14,7 @@ use std::path::{PathBuf};
 use std::rc::Rc;
 use std::time::Duration;
 use num_traits::Zero;
+use crate::renderer::camera::Camera;
 
 fn main() {
     
@@ -106,12 +108,8 @@ fn main() {
     }
     
     let mut projection = glm::ext::perspective(70f32, aspect_ratio, 0.01, 100.0);
-    let view = glm::ext::look_at(
-        Vec3::new(0.0, 1.0, 5.0),
-        Vec3::new(0.0, 0.0, 0.0),
-        Vec3::new(0.0, 1.0, 0.0)
-    );
-    let pv_mat = projection * view;
+    
+    let mut camera = Camera::new(Vec3::new(0.0, 1.0, 5.0), Vec3::new(0.0, 1.0, 0.0));
     
     let mut i = 0f32;
     let mut event_pump = sdl_context.event_pump().unwrap();
@@ -137,7 +135,8 @@ fn main() {
                                 Ok(_) => { println!("shader_checkerboard reloaded!") }
                                 Err(e) => { eprintln!("shader_checkerboard compilation failed: {}", e) }
                             }
-                        }
+                        },
+                        
                         _ => {}
                     }
                 },
@@ -173,6 +172,10 @@ fn main() {
             cos(i + 2.5283 * 0.2) * 0.5 + 0.5,
             (sin(i + 0.82 * 0.7) * 0.5 + 0.5 + cos(i + 0.8223 * 1.23) * 0.5 + 0.5) * 0.5,
             1.0));
+        
+        // camera.set_position(camera.position() + Vec3::new(0.01, 0.0, 0.0));
+        camera.set_rotation(camera.rotation() + Vec3::new(0.0, 0.01, 0.0));
+        let pv_mat = projection * camera.view_mat();
         
         floor.render(pv_mat);
         cube1.render(pv_mat);

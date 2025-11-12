@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use num_traits::identities::One;
 use std::ptr::null;
 use glm::{Vec2, Vec3, Vec4};
 use crate::renderer::buffer::{Buffer, EBO, VAO, VBO};
